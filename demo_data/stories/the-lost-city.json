@@ -1,0 +1,23 @@
+{
+  "id": "the-lost-city",
+  "title": "The Lost City",
+  "genre": "Fantasy",
+  "coverUrl": "https://cdn.example.com/covers/the-lost-city.png",
+  "synopsis": "A young cartographer follows a forgotten map to a city that vanished from every record.",
+  "language": "en",
+  "hot": true,
+  "order": 1,
+  "updatedAt": "2026-10-09T08:00:00Z",
+  "chapters": [
+    {
+      "index": 1,
+      "title": "The Map",
+      "content": "Mira found the map folded inside a book no one had borrowed in forty years.\n\nThe ink was still wet where it crossed the northern mountains, as if someone had drawn it that morning.\n\nShe packed a lantern, a compass and bread for three days, and left before the bells rang."
+    },
+    {
+      "index": 2,
+      "title": "The Gate",
+      "content": "At dawn the mountains opened like a book. Between two walls of pale stone stood a gate with no hinges and no lock.\n\nMira laid her palm against it. The stone was warm, and somewhere behind it a city began to hum."
+    }
+  ]
+}

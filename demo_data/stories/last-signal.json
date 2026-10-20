@@ -1,0 +1,23 @@
+{
+  "id": "last-signal",
+  "title": "Last Signal",
+  "genre": "Sci-fi",
+  "coverUrl": "https://cdn.example.com/covers/last-signal.png",
+  "synopsis": "A lone station engineer receives a message from a ship that was lost a century ago.",
+  "language": "en",
+  "hot": true,
+  "order": 2,
+  "updatedAt": "2026-10-09T08:00:00Z",
+  "chapters": [
+    {
+      "index": 1,
+      "title": "Static",
+      "content": "Station Kepler had been silent for eleven months when the receiver woke up.\n\nOrion Vale pressed the headset to his ear. Under the static, a voice counted backwards from ten.\n\nThe call sign belonged to the Meridian, a ship declared lost one hundred years ago."
+    },
+    {
+      "index": 2,
+      "title": "Coordinates",
+      "content": "The voice stopped at one, and the screen filled with coordinates.\n\nThey pointed at empty space only six light-minutes away. Orion checked the numbers twice, then began warming the engines."
+    }
+  ]
+}

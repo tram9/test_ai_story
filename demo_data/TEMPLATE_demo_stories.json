@@ -1,0 +1,24 @@
+{
+  "stories": [
+    {
+      "id": "<chữ thường, không dấu, nối bằng dấu gạch ngang, duy nhất. Vd: the-lost-city>",
+      "title": "<Tên truyện, tối đa ~40 ký tự>",
+      "genre": "<Một trong: Fantasy | Romance | Sci-fi | Adventure | Horror | Mystery | Story for kid | Mythology>",
+      "cover": "<Tên file ảnh bìa gửi kèm, trùng id. Vd: the-lost-city.png>",
+      "synopsis": "<Tóm tắt 1–3 câu>",
+      "hot": true,
+      "chapters": [
+        {
+          "index": 1,
+          "title": "<Tên chương 1>",
+          "content": "<Nội dung chương 1. Văn bản thuần, các đoạn cách nhau bằng \n\n>"
+        },
+        {
+          "index": 2,
+          "title": "<Tên chương 2>",
+          "content": "<Nội dung chương 2>"
+        }
+      ]
+    }
+  ]
+}

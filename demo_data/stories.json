@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-09T08:00:00Z",
+  "stories": [
+    {
+      "id": "the-lost-city",
+      "title": "The Lost City",
+      "genre": "Fantasy",
+      "coverUrl": "https://cdn.example.com/covers/the-lost-city.png",
+      "hot": true,
+      "order": 1,
+      "language": "en",
+      "chapterCount": 2
+    },
+    {
+      "id": "last-signal",
+      "title": "Last Signal",
+      "genre": "Sci-fi",
+      "coverUrl": "https://cdn.example.com/covers/last-signal.png",
+      "hot": true,
+      "order": 2,
+      "language": "en",
+      "chapterCount": 2
+    },
+    {
+      "id": "letters-to-rain",
+      "title": "Letters to Rain",
+      "genre": "Romance",
+      "coverUrl": "https://cdn.example.com/covers/letters-to-rain.png",
+      "hot": false,
+      "order": 3,
+      "language": "en",
+      "chapterCount": 2
+    }
+  ]
+}

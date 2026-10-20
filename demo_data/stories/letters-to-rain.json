@@ -1,0 +1,23 @@
+{
+  "id": "letters-to-rain",
+  "title": "Letters to Rain",
+  "genre": "Romance",
+  "coverUrl": "https://cdn.example.com/covers/letters-to-rain.png",
+  "synopsis": "Two strangers keep a shared notebook on a rainy-day bench, never meeting, always replying.",
+  "language": "en",
+  "hot": false,
+  "order": 3,
+  "updatedAt": "2026-10-09T08:00:00Z",
+  "chapters": [
+    {
+      "index": 1,
+      "title": "The Bench",
+      "content": "Every Tuesday it rained, and every Tuesday Lan left a page in the blue notebook under the bench.\n\nThe first reply came in the third week, in handwriting she did not know: 'I read yours. Please keep writing.'"
+    },
+    {
+      "index": 2,
+      "title": "The Reply",
+      "content": "She wrote about the bakery, the cracked umbrella, the song she could not name.\n\nThe next Tuesday the answer named the song, and added one line: 'Bring the umbrella. I would like to know who owns it.'"
+    }
+  ]
+}
