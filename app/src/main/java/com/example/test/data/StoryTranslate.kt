@@ -8,6 +8,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONTokener
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
@@ -23,9 +24,11 @@ private const val MAX_CHUNK = 3000
 /** Dịch bằng chatbot `api/ask` (true) hay endpoint Google không chính thức (false). */
 private const val USE_CHATBOT_TRANSLATE = true
 
-// Chia khối nhỏ + gọi song song để rút ngắn thời gian. Chưa biết `ask` có giới hạn lượt/đồng thời không;
-// nếu lỗi hoặc bị chặn thì giảm CHAT_PARALLEL về 1.
-private const val CHAT_CHUNK = 1500
+// Chia văn bản thành các đoạn để model dịch chắc tay từng đoạn, nhưng TOÀN BỘ các đoạn được gộp
+// vào một mảng JSON và gửi trong MỘT lần gọi `ask` duy nhất (xem translateViaChat), thay vì mỗi
+// đoạn một lần gọi riêng như trước. Nếu model không trả đúng mảng, rơi về cách gọi từng đoạn song
+// song (translateChunksFallback) để không mất bản dịch.
+private const val CHAT_SEGMENT_CHUNK = 1200
 private const val CHAT_PARALLEL = 3
 
 /** Dịch [text] (tự nhận ngôn ngữ nguồn) sang [language]. Ném exception nếu lỗi mạng/bị giới hạn. */
@@ -34,24 +37,77 @@ suspend fun translateTo(text: String, language: TranslateLanguage): String =
     else translate(text, "auto", language.apiCode)
 
 /**
- * Nhờ chatbot dịch bằng prompt. Chưa kiểm chứng: chất lượng, độ dài tối đa của `text`,
- * và việc bot có chèn lời dẫn ("Sure, here is…") hay không — prompt đã yêu cầu chỉ trả bản dịch.
+ * Dịch bằng chatbot `api/ask`: gộp toàn bộ các đoạn thành MỘT mảng JSON, yêu cầu model trả về
+ * đúng một mảng JSON cùng số phần tử, cùng thứ tự — chỉ MỘT lần gọi mạng cho cả văn bản dài,
+ * thay vì một lần gọi cho mỗi đoạn. Lấy theo cách project tham khảo AIStoryApp dịch outline của họ
+ * (gộp cả outline thành 1 JSON, dịch 1 lần) — tôi chưa tự đo lại tốc độ với server thật.
+ *
+ * Chưa kiểm chứng: model có luôn tuân thủ trả đúng định dạng/số phần tử không, đặc biệt với văn bản
+ * rất dài (nhiều đoạn). Khi parse thất bại hoặc số phần tử lệch, tự rơi về [translateChunksFallback].
  */
 private suspend fun translateViaChat(text: String, language: TranslateLanguage): String {
     if (text.isBlank()) return text
-    val gate = Semaphore(CHAT_PARALLEL)
-    return coroutineScope {
-        chunkByLines(text, CHAT_CHUNK).map { chunk ->
-            async {
-                gate.withPermit {
-                    ask(
-                        "Translate the following text into ${language.name}. " +
-                            "Keep the paragraph breaks. Output ONLY the translation, with no explanation or notes.\n\n$chunk"
-                    )
-                }
-            }
-        }.awaitAll().joinToString("\n")   // awaitAll giữ đúng thứ tự khối
+    val segments = chunkByLines(text, CHAT_SEGMENT_CHUNK)
+    if (segments.size == 1) return askTranslate(segments[0], language)
+
+    val requestArray = JSONArray().apply { segments.forEach { put(it) } }
+    val prompt = """
+        Translate each element of the following JSON array into ${language.name}. Keep paragraph breaks inside each element. Preserve the exact array length and order.
+        $requestArray
+
+        Output ONLY a single JSON array of ${segments.size} strings, in the same order, with the translated text in each position. No explanation, no markdown, no extra text.
+    """.trimIndent()
+
+    val translated = runCatching { parseTranslatedArray(ask(prompt), segments.size) }.getOrNull()
+    return (translated ?: translateChunksFallback(segments, language)).joinToString("\n")
+}
+
+private suspend fun askTranslate(text: String, language: TranslateLanguage): String =
+    ask(
+        "Translate the following text into ${language.name}. " +
+            "Keep the paragraph breaks. Output ONLY the translation, with no explanation or notes.\n\n$text"
+    )
+
+/** Cách cũ: mỗi đoạn một lần gọi, chạy song song tối đa [CHAT_PARALLEL] đoạn. Chỉ dùng khi dịch gộp thất bại. */
+private suspend fun translateChunksFallback(segments: List<String>, language: TranslateLanguage): List<String> =
+    coroutineScope {
+        val gate = Semaphore(CHAT_PARALLEL)
+        segments.map { chunk -> async { gate.withPermit { askTranslate(chunk, language) } } }.awaitAll()
     }
+
+/** Bóc mảng JSON đầu tiên trong [raw] và kiểm tra đúng [expectedSize] phần tử; sai thì trả null. */
+private fun parseTranslatedArray(raw: String, expectedSize: Int): List<String>? {
+    val start = raw.indexOf('[')
+    val end = raw.lastIndexOf(']')
+    if (start == -1 || end <= start) return null
+    val arr = runCatching {
+        JSONTokener(sanitizeJsonStrings(raw.substring(start, end + 1))).nextValue() as? JSONArray
+    }.getOrNull() ?: return null
+    if (arr.length() != expectedSize) return null
+    return (0 until arr.length()).map { arr.optString(it, "") }
+}
+
+/** Model hay chèn xuống dòng/tab thật bên trong chuỗi JSON, làm parser lỗi — escape lại trước khi parse. */
+private fun sanitizeJsonStrings(text: String): String {
+    val out = StringBuilder(text.length + 32)
+    var inString = false
+    var escaped = false
+    for (ch in text) {
+        if (ch == '\\' && !escaped) {
+            escaped = true
+            out.append(ch)
+            continue
+        }
+        when {
+            ch == '"' && !escaped -> { inString = !inString; out.append(ch) }
+            inString && ch == '\n' -> out.append("\\n")
+            inString && ch == '\r' -> {}
+            inString && ch == '\t' -> out.append("\\t")
+            else -> out.append(ch)
+        }
+        escaped = false
+    }
+    return out.toString()
 }
 
 private fun translateChunk(text: String, from: String, to: String): String {
@@ -73,7 +129,7 @@ private fun translateChunk(text: String, from: String, to: String): String {
     }
 }
 
-/** Gom các dòng thành chunk <= [MAX_CHUNK] ký tự, giữ nguyên xuống dòng. */
+/** Gom các dòng thành chunk <= [maxChunk] ký tự, giữ nguyên xuống dòng. */
 private fun chunkByLines(text: String, maxChunk: Int = MAX_CHUNK): List<String> {
     val chunks = mutableListOf<String>()
     val cur = StringBuilder()
